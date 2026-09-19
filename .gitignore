@@ -36,5 +36,8 @@ workspace/.venv/
 workspace/__pycache__/
 workspace/.pytest_cache/
 
+# Live orchestrator state (scenario traces stay in runs/)
+backend/var/
+
 # Keep run traces, not machine-local caches
 runs/**/*.tmp

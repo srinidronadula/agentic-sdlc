@@ -28,7 +28,19 @@ runs/        saved traces for the three scenarios
 
 ## Status
 
-Scaffold only. Orchestrator, APIs, UI, and recorded runs land in later commits.
+- **C1** scaffold
+- **C2** stateful orchestrator: DAG, human gate before implement, one test retry, JSON audit (no LLM yet)
+
+## Orchestrator (C2)
+
+From `backend/`:
+
+```bash
+python -m pytest
+python -m orchestrator
+```
+
+`understand → design → [approve] → implement → test → docs`. Test failure retries implement once, then stops. Run state is a JSON document.
 
 ## Setup (later)
 
