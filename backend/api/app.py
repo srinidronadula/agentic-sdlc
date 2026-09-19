@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -25,6 +26,30 @@ class StopBody(BaseModel):
     reason: str = "human safe-stop"
 
 
+class RunRunner:
+    """Advance a run off the request thread so GET /runs stays live for the UI."""
+
+    def __init__(self, orch: Orchestrator) -> None:
+        self.orch = orch
+        self._guard = threading.Lock()
+        self._locks: dict[str, threading.Lock] = {}
+
+    def _lock(self, run_id: str) -> threading.Lock:
+        with self._guard:
+            return self._locks.setdefault(run_id, threading.Lock())
+
+    def kick(self, run_id: str) -> None:
+        def work() -> None:
+            with self._lock(run_id):
+                self.orch.run_until_blocked(run_id)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def stop(self, run_id: str, reason: str):
+        with self._lock(run_id):
+            return self.orch.stop(run_id, reason=reason)
+
+
 def default_store_root() -> Path:
     override = os.environ.get("RUN_STORE_DIR")
     if override:
@@ -35,10 +60,11 @@ def default_store_root() -> Path:
 def create_app(orchestrator: Orchestrator | None = None) -> FastAPI:
     load_env()
     orch = orchestrator or build_orchestrator(RunStore(default_store_root()))
+    runner = RunRunner(orch)
     app = FastAPI(
         title="agentic-sdlc",
         description="Control plane for the SDLC orchestrator. Humans approve and stop; agents do not.",
-        version="0.3.0",
+        version="0.5.0",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -47,6 +73,7 @@ def create_app(orchestrator: Orchestrator | None = None) -> FastAPI:
         allow_headers=["*"],
     )
     app.state.orch = orch
+    app.state.runner = runner
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -58,8 +85,8 @@ def create_app(orchestrator: Orchestrator | None = None) -> FastAPI:
         if not requirement:
             raise HTTPException(status_code=422, detail="requirement is blank")
         run = orch.create(requirement)
-        run = orch.run_until_blocked(run.id)
-        return run.to_dict()
+        runner.kick(run.id)
+        return orch.get(run.id).to_dict()
 
     @app.get("/runs/{run_id}")
     def get_run(run_id: str) -> dict:
@@ -69,18 +96,19 @@ def create_app(orchestrator: Orchestrator | None = None) -> FastAPI:
     def approve_run(run_id: str, body: ApproveBody | None = None) -> dict:
         payload = body or ApproveBody()
         _load(orch, run_id)
-        try:
-            orch.approve(run_id, actor=payload.actor.strip() or "human", note=payload.note)
-        except OrchestratorError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        run = orch.run_until_blocked(run_id)
-        return run.to_dict()
+        with runner._lock(run_id):
+            try:
+                orch.approve(run_id, actor=payload.actor.strip() or "human", note=payload.note)
+            except OrchestratorError as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
+        runner.kick(run_id)
+        return orch.get(run_id).to_dict()
 
     @app.post("/runs/{run_id}/stop")
     def stop_run(run_id: str, body: StopBody | None = None) -> dict:
         payload = body or StopBody()
         _load(orch, run_id)
-        run = orch.stop(run_id, reason=payload.reason.strip() or "human safe-stop")
+        run = runner.stop(run_id, reason=payload.reason.strip() or "human safe-stop")
         return run.to_dict()
 
     return app

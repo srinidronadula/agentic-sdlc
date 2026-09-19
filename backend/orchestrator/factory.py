@@ -16,6 +16,9 @@ def load_env() -> None:
 
 def has_llm_key() -> bool:
     load_env()
+    stub = os.environ.get("AGENTIC_STUB", "").strip().lower()
+    if stub in {"1", "true", "yes"}:
+        return False
     return bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
 
 

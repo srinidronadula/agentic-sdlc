@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -14,11 +15,22 @@ def client(tmp_path: Path) -> TestClient:
     return TestClient(create_app(orch))
 
 
+def wait_for(api: TestClient, run_id: str, status: str, timeout: float = 5.0) -> dict:
+    deadline = time.time() + timeout
+    body: dict = {}
+    while time.time() < deadline:
+        body = api.get(f"/runs/{run_id}").json()
+        if body.get("status") == status:
+            return body
+        time.sleep(0.05)
+    raise AssertionError(f"timed out waiting for {status}: {body}")
+
+
 def test_create_run_pauses_before_implement(tmp_path: Path) -> None:
-    response = client(tmp_path).post("/runs", json={"requirement": "Build a URL shortener"})
+    api = client(tmp_path)
+    response = api.post("/runs", json={"requirement": "Build a URL shortener"})
     assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "awaiting_approval"
+    body = wait_for(api, response.json()["id"], "awaiting_approval")
     assert body["stages"]["design"]["status"] == "succeeded"
     assert body["stages"]["implement"]["status"] == "pending"
     assert any(event["type"] == "approval_required" for event in body["events"])
@@ -27,10 +39,11 @@ def test_create_run_pauses_before_implement(tmp_path: Path) -> None:
 def test_get_run_status(tmp_path: Path) -> None:
     api = client(tmp_path)
     created = api.post("/runs", json={"requirement": "status check"}).json()
+    body = wait_for(api, created["id"], "awaiting_approval")
     response = api.get(f"/runs/{created['id']}")
     assert response.status_code == 200
     assert response.json()["id"] == created["id"]
-    assert response.json()["status"] == "awaiting_approval"
+    assert body["status"] == "awaiting_approval"
 
 
 def test_missing_run_is_404(tmp_path: Path) -> None:
@@ -41,13 +54,13 @@ def test_missing_run_is_404(tmp_path: Path) -> None:
 def test_approve_then_completes(tmp_path: Path) -> None:
     api = client(tmp_path)
     created = api.post("/runs", json={"requirement": "greenfield stub"}).json()
+    wait_for(api, created["id"], "awaiting_approval")
     response = api.post(
         f"/runs/{created['id']}/approve",
         json={"actor": "nikhil", "note": "design looks bounded"},
     )
     assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "succeeded"
+    body = wait_for(api, created["id"], "succeeded")
     assert body["stages"]["docs"]["status"] == "succeeded"
     assert body["approvals"][0]["actor"] == "nikhil"
 
@@ -55,6 +68,7 @@ def test_approve_then_completes(tmp_path: Path) -> None:
 def test_stop_is_safe(tmp_path: Path) -> None:
     api = client(tmp_path)
     created = api.post("/runs", json={"requirement": "halt this"}).json()
+    wait_for(api, created["id"], "awaiting_approval")
     response = api.post(
         f"/runs/{created['id']}/stop",
         json={"reason": "operator halt"},
@@ -69,6 +83,7 @@ def test_stop_is_safe(tmp_path: Path) -> None:
 def test_approve_without_gate_is_conflict(tmp_path: Path) -> None:
     api = client(tmp_path)
     created = api.post("/runs", json={"requirement": "then stop"}).json()
+    wait_for(api, created["id"], "awaiting_approval")
     api.post(f"/runs/{created['id']}/stop", json={"reason": "done"})
     response = api.post(f"/runs/{created['id']}/approve", json={"actor": "nikhil"})
     assert response.status_code == 409

@@ -32,18 +32,28 @@ runs/        saved traces for the three scenarios
 - **C2** stateful orchestrator: DAG, human gate before implement, one test retry, JSON audit
 - **C3** FastAPI control plane: create, status, approve, stop
 - **C4** Anthropic implement/test agents write a URL shortener into `workspace/`
+- **C5** React control plane: chat/requirement, stage board, Approve / Stop
 
-## Orchestrator (C2–C4)
+## How to run
 
-Copy `.env.example` to `.env` and set `ANTHROPIC_API_KEY`. From `backend/`:
+Copy `.env.example` to `.env` and set `ANTHROPIC_API_KEY`.
 
 ```bash
+cd backend
+python -m pip install -e ".[dev]"
 python -m pytest
-python -m orchestrator --approve
 python -m api
 ```
 
-`understand → design → [approve] → implement → test → docs`. Implement/test use Claude Haiku with `write_file` / `read_file` / `run_tests` (workspace only). Test failure retries implement once, then stops.
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+UI: `http://127.0.0.1:5173` (proxies `/api` to the backend). CLI: `python -m orchestrator --approve`.
+
+`understand → design → [approve] → implement → test → docs`. Implement/test use Claude Haiku with `write_file` / `read_file` / `run_tests` (workspace only). Test failure retries implement once, then stops. For a UI walkthrough without LLM calls, set `AGENTIC_STUB=1`.
 
 - `POST /runs` — create and pause before implement
 - `GET /runs/{id}` — status + audit
