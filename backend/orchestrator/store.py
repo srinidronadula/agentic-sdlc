@@ -23,4 +23,7 @@ class RunStore:
         tmp.replace(path)
 
     def load(self, run_id: str) -> Run:
-        return Run.from_dict(json.loads(self.path(run_id).read_text(encoding="utf-8")))
+        path = self.path(run_id)
+        if not path.exists():
+            raise FileNotFoundError(run_id)
+        return Run.from_dict(json.loads(path.read_text(encoding="utf-8")))

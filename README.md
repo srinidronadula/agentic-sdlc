@@ -29,18 +29,25 @@ runs/        saved traces for the three scenarios
 ## Status
 
 - **C1** scaffold
-- **C2** stateful orchestrator: DAG, human gate before implement, one test retry, JSON audit (no LLM yet)
+- **C2** stateful orchestrator: DAG, human gate before implement, one test retry, JSON audit
+- **C3** FastAPI control plane: create, status, approve, stop (no LLM yet)
 
-## Orchestrator (C2)
+## Orchestrator (C2–C3)
 
 From `backend/`:
 
 ```bash
 python -m pytest
 python -m orchestrator
+python -m api
 ```
 
 `understand → design → [approve] → implement → test → docs`. Test failure retries implement once, then stops. Run state is a JSON document.
+
+- `POST /runs` — create and pause before implement
+- `GET /runs/{id}` — status + audit
+- `POST /runs/{id}/approve` — human gate
+- `POST /runs/{id}/stop` — safe-stop
 
 ## Setup (later)
 

@@ -3,10 +3,16 @@ name = "agentic-sdlc-backend"
 version = "0.1.0"
 description = "Stateful SDLC orchestrator with gates, retries, and an audit log"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+include = ["orchestrator*", "api*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
