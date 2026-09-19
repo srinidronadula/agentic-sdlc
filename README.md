@@ -30,25 +30,22 @@ runs/        saved traces for the three scenarios
 
 - **C1** scaffold
 - **C2** stateful orchestrator: DAG, human gate before implement, one test retry, JSON audit
-- **C3** FastAPI control plane: create, status, approve, stop (no LLM yet)
+- **C3** FastAPI control plane: create, status, approve, stop
+- **C4** Anthropic implement/test agents write a URL shortener into `workspace/`
 
-## Orchestrator (C2–C3)
+## Orchestrator (C2–C4)
 
-From `backend/`:
+Copy `.env.example` to `.env` and set `ANTHROPIC_API_KEY`. From `backend/`:
 
 ```bash
 python -m pytest
-python -m orchestrator
+python -m orchestrator --approve
 python -m api
 ```
 
-`understand → design → [approve] → implement → test → docs`. Test failure retries implement once, then stops. Run state is a JSON document.
+`understand → design → [approve] → implement → test → docs`. Implement/test use Claude Haiku with `write_file` / `read_file` / `run_tests` (workspace only). Test failure retries implement once, then stops.
 
 - `POST /runs` — create and pause before implement
 - `GET /runs/{id}` — status + audit
 - `POST /runs/{id}/approve` — human gate
 - `POST /runs/{id}/stop` — safe-stop
-
-## Setup (later)
-
-Copy `.env.example` to `.env`. Do not commit secrets.

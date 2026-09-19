@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from orchestrator.engine import Orchestrator, OrchestratorError
+from orchestrator.factory import build_orchestrator, load_env
 from orchestrator.store import RunStore
 
 
@@ -32,7 +33,8 @@ def default_store_root() -> Path:
 
 
 def create_app(orchestrator: Orchestrator | None = None) -> FastAPI:
-    orch = orchestrator or Orchestrator(RunStore(default_store_root()))
+    load_env()
+    orch = orchestrator or build_orchestrator(RunStore(default_store_root()))
     app = FastAPI(
         title="agentic-sdlc",
         description="Control plane for the SDLC orchestrator. Humans approve and stop; agents do not.",

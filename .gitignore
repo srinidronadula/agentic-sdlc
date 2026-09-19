@@ -35,6 +35,7 @@ Thumbs.db
 workspace/.venv/
 workspace/__pycache__/
 workspace/.pytest_cache/
+workspace/*.db
 
 # Live orchestrator state (scenario traces stay in runs/)
 backend/var/
