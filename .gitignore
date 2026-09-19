@@ -1,0 +1,40 @@
+# Secrets and local env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Node / React
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.log
+npm-debug.log*
+.vite/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Agent workspace runtime (keep source, drop junk)
+workspace/.venv/
+workspace/__pycache__/
+workspace/.pytest_cache/
+
+# Keep run traces, not machine-local caches
+runs/**/*.tmp
