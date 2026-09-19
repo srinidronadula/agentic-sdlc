@@ -11,16 +11,16 @@ Never write secrets, .env files, or files outside workspace/.
 Prefer small, boring, testable Python.
 """
 
-IMPLEMENT_SPEC = """Build a tiny URL shortener in workspace/ using FastAPI (already installed).
-
-Must include:
-- POST /shorten  JSON {"url": "https://example.com"} -> {"code": "<short>"}
-- GET /{code}    302 redirect to the original URL
-- GET /stats/{code}  JSON {"url": "...", "clicks": N}
-- sqlite persistence (urls.db) so clicks survive process restart
-- pytest tests using fastapi.TestClient covering shorten, redirect, click count, and 404
+IMPLEMENT_SPEC = """workspace/ already has a FastAPI URL shortener (sqlite, pytest, TestClient).
 
 Use only tools write_file, read_file, run_tests.
+First read_file: shortener/app.py, shortener/service.py, shortener/db.py, tests/test_shortener.py.
+
+Greenfield: if those files are missing, create a tiny shortener
+(POST /shorten, GET /{code} 302, GET /stats/{code}, sqlite, tests).
+Brownfield: patch the existing modules. Keep current APIs working.
+Do not rewrite the service from scratch.
+
 Keep going until run_tests returns exit=0.
 Do not explain instead of writing files.
 """
@@ -53,9 +53,11 @@ def llm_handlers(llm: AnthropicLLM | None = None) -> dict[StageId, Handler]:
         text = get_llm().run(
             SYSTEM,
             _context(run)
-            + "\n\nStage: understand. Restate intent, list ambiguities, and state assumptions. "
-            "Do not write code. If the ask is a URL shortener, assume: random codes, http(s) URLs only, "
-            "in-process sqlite, no auth.",
+            + "\n\nStage: understand. Restate intent. List ambiguities as questions. "
+            "State the bounded assumptions you will proceed with — especially if the ask is vague "
+            "(e.g. 'more reliable' / 'production-ready'). Do not write code. "
+            "If workspace already contains a URL shortener, treat this as a change to that system. "
+            "Default assumptions when unspecified: http(s) URLs only, sqlite, no auth, no new cloud infra.",
         )
         return _result(True, text)
 
@@ -63,8 +65,9 @@ def llm_handlers(llm: AnthropicLLM | None = None) -> dict[StageId, Handler]:
         text = get_llm().run(
             SYSTEM,
             _context(run)
-            + "\n\nStage: design. Propose modules, API contracts, sqlite schema, and a test plan. "
-            "Do not write implementation files.",
+            + "\n\nStage: design. Propose the smallest change that satisfies the assumptions. "
+            "Name impacted files, API/schema diffs, and tests. Do not write implementation files. "
+            "If this is brownfield, say what you will not rewrite.",
         )
         return _result(True, text)
 

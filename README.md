@@ -34,6 +34,7 @@ runs/        saved traces for the three scenarios
 - **C4** Anthropic implement/test agents write a URL shortener into `workspace/`
 - **C5** React control plane: chat/requirement, stage board, Approve / Stop
 - **C6** recorded greenfield run in `runs/greenfield/`
+- **C7** recorded brownfield (custom aliases) and ambiguous (reliability) runs
 
 ## How to run
 
