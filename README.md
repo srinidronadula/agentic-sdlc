@@ -33,6 +33,7 @@ runs/        saved traces for the three scenarios
 - **C3** FastAPI control plane: create, status, approve, stop
 - **C4** Anthropic implement/test agents write a URL shortener into `workspace/`
 - **C5** React control plane: chat/requirement, stage board, Approve / Stop
+- **C6** recorded greenfield run in `runs/greenfield/`
 
 ## How to run
 
